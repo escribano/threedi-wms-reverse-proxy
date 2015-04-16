@@ -12,17 +12,41 @@ import (
 )
 
 var sessionKeyCache map[string]string
+var pool *redis.Pool
+
+func newPool(server, password string) *redis.Pool {
+	return &redis.Pool{
+		MaxIdle:     3,
+		IdleTimeout: 240 * time.Second,
+		Dial: func() (redis.Conn, error) {
+			c, err := redis.Dial("tcp", server)
+			if err != nil {
+				return nil, err
+			}
+			if password != "" {
+				if _, err := c.Do("AUTH", password); err != nil {
+					c.Close()
+					return nil, err
+				}
+			}
+			return c, err
+		},
+		TestOnBorrow: func(c redis.Conn, t time.Time) error {
+			_, err := c.Do("PING")
+			return err
+		},
+	}
+}
 
 func WmsReverseProxy(redisHost string, redisPort string, wmsPort string) *httputil.ReverseProxy {
 	sessionKeyCache := make(map[string]string)
 	redisAddress := strings.Join([]string{redisHost, redisPort}, ":")
+	pool = newPool(redisAddress, "")
 	director := func(req *http.Request) {
-		// make the redis connection; consider making this a redis pool of connections
-		c, err := redis.DialTimeout("tcp", redisAddress, 0, 1*time.Second, 1*time.Second)
-		if err != nil {
-			log.Fatal("redis.DialTimeout: ", err)
-		}
-		conn := c
+		// get a redis connection from the pool
+		conn := pool.Get()
+		log.Println("number of active connections in redis pool:", pool.ActiveCount())
+		defer conn.Close()
 
 		// get the session key from the request
 		var sessionKey string
@@ -30,16 +54,16 @@ func WmsReverseProxy(redisHost string, redisPort string, wmsPort string) *httput
 		for _, cookie := range req.Cookies() {
 			if cookie.Name == "sessionid" {
 				sessionKey = cookie.Value
-				log.Println("session key from cookie: ", sessionKey)
+				log.Println("session key from cookie:", sessionKey)
 				// put the session key in a cache map by using remoteAddr as key
 				sessionKeyCache[remoteAddr] = sessionKey
-				log.Println("storing sessionKey in cache; remoteAddr: ", remoteAddr)
+				log.Println("storing sessionKey in cache; remoteAddr:", remoteAddr)
 			}
 		}
 		if sessionKey == "" {
 			log.Println("remoteAddr: ", remoteAddr)
 			sessionKey = sessionKeyCache[remoteAddr]
-			log.Println("session key from cache: ", sessionKey)
+			log.Println("session key from cache:", sessionKey)
 		}
 		if sessionKey == "" {
 			log.Println("unable to determine a session key")
@@ -47,27 +71,25 @@ func WmsReverseProxy(redisHost string, redisPort string, wmsPort string) *httput
 			// get the subgrid_id from session_to_subgrid_id based on the session key
 			subgridId, err := redis.String(conn.Do("HGET", "session_to_subgrid_id", sessionKey))
 			if err != nil {
-				log.Println("redis.Do HGET session_to_subgrid_id: ", err)
+				log.Println("redis.Do HGET session_to_subgrid_id:", err)
 			} else {
-				log.Println("subgrid_id: ", subgridId)
+				log.Println("subgrid_id:", subgridId)
 
 				// get the wms ip address from the subgrid_id_to_ip hash
 				wmsIP, err := redis.String(conn.Do("HGET", "subgrid_id_to_ip", subgridId))
 				if err != nil {
-					log.Println("redis.Do HGET subgrid_id_to_ip: ", err)
+					log.Println("redis.Do HGET subgrid_id_to_ip:", err)
 				} else {
 
 					// use the wms address to redirect this request
 					// TODO: make wms port a command-line flag
 					wmsAddress := strings.Join([]string{wmsIP, wmsPort}, ":")
-					log.Println("wms address: ", wmsAddress)
+					log.Println("wms address:", wmsAddress)
 					req.URL.Scheme = "http"
 					req.URL.Host = wmsAddress
 				}
 			}
 		}
-		// close the redis connection
-		conn.Close()
 	}
 	return &httputil.ReverseProxy{Director: director}
 }
@@ -93,6 +115,6 @@ func main() {
 	// TODO: read port from command-line
 	http_err := http.ListenAndServe(":"+*proxyPort, wms_proxy)
 	if http_err != nil {
-		log.Fatal("ListenAndServe: ", http_err)
+		log.Fatal("ListenAndServe:", http_err)
 	}
 }
