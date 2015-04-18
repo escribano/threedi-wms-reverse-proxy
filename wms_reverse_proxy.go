@@ -57,17 +57,16 @@ func wmsReverseProxy(redisHost string, redisPort string, wmsPort string) *httput
 			log.Println("got session key from request:", sessionKey)
 			// put the session key in a cache map by using remoteAddr as key
 			sessionKeyCache[remoteAddr] = sessionKey
-			log.Println("storing sessionKey in cache; remoteAddr:", remoteAddr)
+			log.Println("storing session key in cache; remote address:", remoteAddr)
 		} else {
-			log.Println("remoteAddr: ", remoteAddr)
+			log.Println("fetching session key from cache; remote address: ", remoteAddr)
 			sessionKey = sessionKeyCache[remoteAddr]
 			if sessionKey == "" {
-				log.Println("unable to determine a session key")
+				log.Println("unable to get session key from cache")
 				req.URL = nil // returns a 500 response
 				return
-			} else {
-				log.Println("got session key from cache:", sessionKey)
 			}
+			log.Println("got session key from cache:", sessionKey)
 		}
 
 		// get the subgrid_id
