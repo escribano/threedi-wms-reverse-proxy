@@ -43,12 +43,12 @@ func wmsReverseProxy(redisHost string, redisPort string, wmsPort string) *httput
 	redisAddress := strings.Join([]string{redisHost, redisPort}, ":")
 	pool = newPool(redisAddress, "")
 	director := func(req *http.Request) {
-		// get a redis connection from the pool
+		// get a redis connection
 		conn := pool.Get()
 		log.Println("number of active connections in redis pool:", pool.ActiveCount())
 		defer conn.Close()
 
-		// get the session key from the request
+		// 1) get the session key
 		var sessionKey string
 		sessionCookie, err := req.Cookie("sessionid")
 		remoteAddr := strings.Split(req.RemoteAddr, ":")[0] // skip the port
@@ -69,25 +69,25 @@ func wmsReverseProxy(redisHost string, redisPort string, wmsPort string) *httput
 			log.Println("got session key from cache:", sessionKey)
 		}
 
-		// get the subgrid_id
+		// 2) get the subgrid_id
 		subgridID, err := redis.String(conn.Do("HGET", "session_to_subgrid_id", sessionKey))
 		if err != nil {
-			log.Println("redis.Do HGET session_to_subgrid_id:", err)
+			log.Println("unable to get subgrid id:", err)
 			req.URL = nil
 			return
 		}
-		log.Println("subgrid id:", subgridID)
+		log.Println("got subgrid id:", subgridID)
 
-		// get the wms server ip
+		// 3) get the wms server ip
 		wmsIP, err := redis.String(conn.Do("HGET", "subgrid_id_to_ip", subgridID))
 		if err != nil {
-			log.Println("redis.Do HGET subgrid_id_to_ip:", err)
+			log.Println("unable to get wms ip:", err)
 			req.URL = nil
 			return
 		}
 		// use the wms address to redirect this request to
 		wmsAddress := strings.Join([]string{wmsIP, wmsPort}, ":")
-		log.Println("wms address:", wmsAddress)
+		log.Println("got wms address:", wmsAddress)
 		req.URL.Scheme = "http"
 		req.URL.Host = wmsAddress
 	}
@@ -103,18 +103,18 @@ func main() {
 
 	flag.Parse()
 	if *proxyPort == "" {
-		log.Fatal("proxy_port is required")
+		log.Fatal("-proxy_port is required")
 	}
 	if *redisIPPtr == "" {
-		log.Fatal("redis_ip is required")
+		log.Fatal("-redis_ip is required")
 	}
 
 	wmsProxy := wmsReverseProxy(*redisIPPtr, *redisPortPtr, *wmsPortPtr)
-	log.Println("WMS proxy started")
+	log.Println("wms proxy started")
 
 	// TODO: read port from command-line
 	httpErr := http.ListenAndServe(":"+*proxyPort, wmsProxy)
 	if httpErr != nil {
-		log.Fatal("ListenAndServe:", httpErr)
+		log.Fatal("http.ListenAndServe:", httpErr)
 	}
 }
