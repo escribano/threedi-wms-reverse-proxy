@@ -85,7 +85,7 @@ func wmsReverseProxy(redisHost string, redisPort string, wmsPort string) *httput
 			req.URL = nil
 			return
 		}
-		// use the wms address to redirect this request to
+		// use the full wms address to redirect this request to
 		wmsAddress := strings.Join([]string{wmsIP, wmsPort}, ":")
 		log.Println("got wms address:", wmsAddress)
 		req.URL.Scheme = "http"
@@ -102,9 +102,11 @@ func main() {
 	wmsPortPtr := flag.String("wms_port", "5000", "wms server port")
 
 	flag.Parse()
+
 	if *proxyPort == "" {
 		log.Fatal("-proxy_port is required")
 	}
+
 	if *redisIPPtr == "" {
 		log.Fatal("-redis_ip is required")
 	}
@@ -112,7 +114,6 @@ func main() {
 	wmsProxy := wmsReverseProxy(*redisIPPtr, *redisPortPtr, *wmsPortPtr)
 	log.Println("wms proxy started")
 
-	// TODO: read port from command-line
 	httpErr := http.ListenAndServe(":"+*proxyPort, wmsProxy)
 	if httpErr != nil {
 		log.Fatal("http.ListenAndServe:", httpErr)
