@@ -50,39 +50,38 @@ func wmsReverseProxy(redisHost string, redisPort string, wmsPort string) *httput
 
 		// get the session key from the request
 		var sessionKey string
+		sessionCookie, err := req.Cookie("sessionid")
 		remoteAddr := strings.Split(req.RemoteAddr, ":")[0] // skip the port
-		for _, cookie := range req.Cookies() {
-			if cookie.Name == "sessionid" {
-				sessionKey = cookie.Value
-				log.Println("session key from cookie:", sessionKey)
-				// put the session key in a cache map by using remoteAddr as key
-				sessionKeyCache[remoteAddr] = sessionKey
-				log.Println("storing sessionKey in cache; remoteAddr:", remoteAddr)
-			}
-		}
-		if sessionKey == "" {
+		if err == nil {
+			sessionKey := sessionCookie.Value
+			log.Println("session key from request:", sessionKey)
+			// put the session key in a cache map by using remoteAddr as key
+			sessionKeyCache[remoteAddr] = sessionKey
+			log.Println("storing sessionKey in cache; remoteAddr:", remoteAddr)
+		} else {
 			log.Println("remoteAddr: ", remoteAddr)
 			sessionKey = sessionKeyCache[remoteAddr]
-			log.Println("session key from cache:", sessionKey)
+			if sessionKey == "" {
+				log.Println("unable to determine a session key")
+			} else {
+				log.Println("session key from cache:", sessionKey)
+			}
 		}
-		if sessionKey == "" {
-			log.Println("unable to determine a session key")
-		} else {
-			// get the subgrid_id from session_to_subgrid_id based on the session key
+
+		if sessionKey != "" {
+			// get the subgrid_id
 			subgridID, err := redis.String(conn.Do("HGET", "session_to_subgrid_id", sessionKey))
 			if err != nil {
 				log.Println("redis.Do HGET session_to_subgrid_id:", err)
 			} else {
 				log.Println("subgrid_id:", subgridID)
 
-				// get the wms ip address from the subgrid_id_to_ip hash
+				// get the wms server ip
 				wmsIP, err := redis.String(conn.Do("HGET", "subgrid_id_to_ip", subgridID))
 				if err != nil {
 					log.Println("redis.Do HGET subgrid_id_to_ip:", err)
 				} else {
-
 					// use the wms address to redirect this request
-					// TODO: make wms port a command-line flag
 					wmsAddress := strings.Join([]string{wmsIP, wmsPort}, ":")
 					log.Println("wms address:", wmsAddress)
 					req.URL.Scheme = "http"
