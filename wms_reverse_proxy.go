@@ -54,7 +54,7 @@ func wmsReverseProxy(redisHost string, redisPort string, wmsPort string) *httput
 		remoteAddr := strings.Split(req.RemoteAddr, ":")[0] // skip the port
 		if err == nil {
 			sessionKey := sessionCookie.Value
-			log.Println("session key from request:", sessionKey)
+			log.Println("got session key from request:", sessionKey)
 			// put the session key in a cache map by using remoteAddr as key
 			sessionKeyCache[remoteAddr] = sessionKey
 			log.Println("storing sessionKey in cache; remoteAddr:", remoteAddr)
@@ -63,32 +63,34 @@ func wmsReverseProxy(redisHost string, redisPort string, wmsPort string) *httput
 			sessionKey = sessionKeyCache[remoteAddr]
 			if sessionKey == "" {
 				log.Println("unable to determine a session key")
+				req.URL = nil // returns a 500 response
+				return
 			} else {
-				log.Println("session key from cache:", sessionKey)
+				log.Println("got session key from cache:", sessionKey)
 			}
 		}
 
-		if sessionKey != "" {
-			// get the subgrid_id
-			subgridID, err := redis.String(conn.Do("HGET", "session_to_subgrid_id", sessionKey))
-			if err != nil {
-				log.Println("redis.Do HGET session_to_subgrid_id:", err)
-			} else {
-				log.Println("subgrid_id:", subgridID)
-
-				// get the wms server ip
-				wmsIP, err := redis.String(conn.Do("HGET", "subgrid_id_to_ip", subgridID))
-				if err != nil {
-					log.Println("redis.Do HGET subgrid_id_to_ip:", err)
-				} else {
-					// use the wms address to redirect this request
-					wmsAddress := strings.Join([]string{wmsIP, wmsPort}, ":")
-					log.Println("wms address:", wmsAddress)
-					req.URL.Scheme = "http"
-					req.URL.Host = wmsAddress
-				}
-			}
+		// get the subgrid_id
+		subgridID, err := redis.String(conn.Do("HGET", "session_to_subgrid_id", sessionKey))
+		if err != nil {
+			log.Println("redis.Do HGET session_to_subgrid_id:", err)
+			req.URL = nil
+			return
 		}
+		log.Println("subgrid id:", subgridID)
+
+		// get the wms server ip
+		wmsIP, err := redis.String(conn.Do("HGET", "subgrid_id_to_ip", subgridID))
+		if err != nil {
+			log.Println("redis.Do HGET subgrid_id_to_ip:", err)
+			req.URL = nil
+			return
+		}
+		// use the wms address to redirect this request to
+		wmsAddress := strings.Join([]string{wmsIP, wmsPort}, ":")
+		log.Println("wms address:", wmsAddress)
+		req.URL.Scheme = "http"
+		req.URL.Host = wmsAddress
 	}
 	return &httputil.ReverseProxy{Director: director}
 }
