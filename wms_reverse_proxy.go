@@ -11,8 +11,10 @@ import (
 	"github.com/garyburd/redigo/redis"
 )
 
-var sessionKeyCache map[string]string
-var pool *redis.Pool
+var (
+	sessionKeyCache map[string]string
+	pool            *redis.Pool
+)
 
 func newPool(server, password string) *redis.Pool {
 	return &redis.Pool{
