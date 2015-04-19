@@ -16,7 +16,7 @@ var (
 	pool            *redis.Pool
 )
 
-func newPool(server, password string) *redis.Pool {
+func newRedisPool(server, password string) *redis.Pool {
 	return &redis.Pool{
 		MaxIdle:     3,
 		IdleTimeout: 240 * time.Second,
@@ -42,14 +42,11 @@ func newPool(server, password string) *redis.Pool {
 
 func wmsReverseProxy(redisHost string, redisPort string, wmsPort string) *httputil.ReverseProxy {
 	sessionKeyCache := make(map[string]string)
-	redisAddress := strings.Join([]string{redisHost, redisPort}, ":")
-	pool = newPool(redisAddress, "")
-	director := func(req *http.Request) {
-		// get a redis connection
-		conn := pool.Get()
-		log.Println("number of active connections in redis pool:", pool.ActiveCount())
-		defer conn.Close()
 
+	redisAddress := strings.Join([]string{redisHost, redisPort}, ":")
+	pool = newRedisPool(redisAddress, "")
+
+	director := func(req *http.Request) {
 		// 1) get the session key
 		var sessionKey string
 		sessionCookie, err := req.Cookie("sessionid")
@@ -71,6 +68,11 @@ func wmsReverseProxy(redisHost string, redisPort string, wmsPort string) *httput
 			log.Println("got session key from cache:", sessionKey)
 		}
 
+		// redis connection
+		conn := pool.Get()
+		log.Println("number of active connections in redis pool:", pool.ActiveCount())
+		defer conn.Close()
+
 		// 2) get the subgrid_id
 		subgridID, err := redis.String(conn.Do("HGET", "session_to_subgrid_id", sessionKey))
 		if err != nil {
@@ -87,6 +89,7 @@ func wmsReverseProxy(redisHost string, redisPort string, wmsPort string) *httput
 			req.URL = nil
 			return
 		}
+
 		// use the full wms address to redirect this request to
 		wmsAddress := strings.Join([]string{wmsIP, wmsPort}, ":")
 		log.Println("got wms address:", wmsAddress)
@@ -97,7 +100,6 @@ func wmsReverseProxy(redisHost string, redisPort string, wmsPort string) *httput
 }
 
 func main() {
-	// command-line flags
 	proxyPort := flag.String("proxy_port", "", "port the reverse proxy serves on (required)")
 	redisIPPtr := flag.String("redis_ip", "", "ip address of the redis server (required)")
 	redisPortPtr := flag.String("redis_port", "6379", "port of the redis server")
