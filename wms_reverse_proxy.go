@@ -1,13 +1,14 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"net/http"
 	"net/http/httputil"
+	"os"
 	"strings"
 	"time"
 
+	"github.com/codegangsta/cli"
 	"github.com/garyburd/redigo/redis"
 )
 
@@ -62,13 +63,13 @@ func wmsReverseProxy(redisHost string, redisPort string, wmsPort string) *httput
 			sessionKey = sessionKeyCache[remoteAddr]
 			if sessionKey == "" {
 				log.Println("unable to get session key from cache")
-				req.URL = nil // returns a 500 response
+				req.URL = nil // results in a 500 response, which is what we want here
 				return
 			}
 			log.Println("got session key from cache:", sessionKey)
 		}
 
-		// redis connection
+		// redis connection from pool
 		conn := pool.Get()
 		log.Println("number of active connections in redis pool:", pool.ActiveCount())
 		defer conn.Close()
@@ -100,26 +101,49 @@ func wmsReverseProxy(redisHost string, redisPort string, wmsPort string) *httput
 }
 
 func main() {
-	proxyPort := flag.String("proxy_port", "", "port the reverse proxy serves on (required)")
-	redisIPPtr := flag.String("redis_ip", "", "ip address of the redis server (required)")
-	redisPortPtr := flag.String("redis_port", "6379", "port of the redis server")
-	wmsPortPtr := flag.String("wms_port", "5000", "wms server port")
-
-	flag.Parse()
-
-	if *proxyPort == "" {
-		log.Fatal("-proxy_port is required")
+	app := cli.NewApp()
+	app.Name = "wmsrp"
+	app.Usage = "wms reverse proxy server for the 3di scalability architecture"
+	app.Version = "0.0.1"
+	app.Authors = []cli.Author{
+		cli.Author{Name: "Sander Smits", Email: ""},
 	}
-
-	if *redisIPPtr == "" {
-		log.Fatal("-redis_ip is required")
+	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "port, p",
+			Value: "5050",
+			Usage: "port this reverse proxy serves on",
+		},
+		cli.StringFlag{
+			Name:  "redis-host",
+			Value: "127.0.0.1",
+			Usage: "redis server host",
+		},
+		cli.StringFlag{
+			Name:  "redis-port",
+			Value: "6379",
+			Usage: "redis server port",
+		},
+		cli.StringFlag{
+			Name:  "wms-port",
+			Value: "5000",
+			Usage: "wms server port",
+		},
 	}
+	app.Action = func(c *cli.Context) {
+		port := c.String("port")
+		redisHost := c.String("redis-host")
+		redisPort := c.String("redis-port")
+		wmsPort := c.String("wms-port")
+		wmsRevProxy := wmsReverseProxy(redisHost, redisPort, wmsPort)
+		log.Println("starting wms reverse proxy on port", port)
+		log.Println("using redirect info from redis server on", strings.Join([]string{redisHost, redisPort}, ":"))
+		log.Println("redirecting to wms servers on port", wmsPort)
 
-	wmsProxy := wmsReverseProxy(*redisIPPtr, *redisPortPtr, *wmsPortPtr)
-	log.Println("wms proxy started")
-
-	httpErr := http.ListenAndServe(":"+*proxyPort, wmsProxy)
-	if httpErr != nil {
-		log.Fatal("http.ListenAndServe:", httpErr)
+		err := http.ListenAndServe(":"+port, wmsRevProxy)
+		if err != nil {
+			log.Fatal("http.ListenAndServe:", err)
+		}
 	}
+	app.Run(os.Args)
 }
