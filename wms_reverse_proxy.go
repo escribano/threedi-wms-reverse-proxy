@@ -135,7 +135,9 @@ func main() {
 		redisHost := c.String("redis-host")
 		redisPort := c.String("redis-port")
 		wmsPort := c.String("wms-port")
+
 		wmsRevProxy := wmsReverseProxy(redisHost, redisPort, wmsPort)
+
 		log.Println("starting wms reverse proxy on port", port)
 		log.Println("using redirect info from redis server on", strings.Join([]string{redisHost, redisPort}, ":"))
 		log.Println("redirecting to wms servers on port", wmsPort)
