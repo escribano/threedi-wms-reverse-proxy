@@ -41,7 +41,7 @@ func newRedisPool(server, password string) *redis.Pool {
 	}
 }
 
-func wmsReverseProxy(redisHost string, redisPort string, wmsPort string) *httputil.ReverseProxy {
+func wmsReverseProxy(redisHost string, redisPort string, wmsPort string, useCache bool) *httputil.ReverseProxy {
 	sessionKeyCache := make(map[string]string)
 
 	redisAddress := strings.Join([]string{redisHost, redisPort}, ":")
@@ -55,18 +55,22 @@ func wmsReverseProxy(redisHost string, redisPort string, wmsPort string) *httput
 		if err == nil {
 			sessionKey := sessionCookie.Value
 			log.Println("got session key from request:", sessionKey)
-			// put the session key in a cache map by using remoteAddr as key
-			sessionKeyCache[remoteAddr] = sessionKey
-			log.Println("storing session key in cache; remote address:", remoteAddr)
-		} else {
+			if useCache == true {
+				// put the session key in a cache map by using remoteAddr as key
+				sessionKeyCache[remoteAddr] = sessionKey
+				log.Println("storing session key in cache; remote address:", remoteAddr)
+			}
+		} else if useCache == true {
 			log.Println("fetching session key from cache; remote address: ", remoteAddr)
 			sessionKey = sessionKeyCache[remoteAddr]
-			if sessionKey == "" {
-				log.Println("unable to get session key from cache")
-				req.URL = nil // results in a 500 response, which is what we want here
-				return
+			if sessionKey != "" {
+				log.Println("got session key from cache:", sessionKey)
 			}
-			log.Println("got session key from cache:", sessionKey)
+		}
+		if sessionKey == "" {
+			log.Println("unable to get a session key")
+			req.URL = nil // results in a 500 response, which is what we want here
+			return
 		}
 
 		// redis connection from pool
@@ -129,14 +133,19 @@ func main() {
 			Value: "5000",
 			Usage: "wms server port",
 		},
+		cli.BoolFlag{
+			Name:  "use-cache",
+			Usage: "cache session keys (use for development environments)",
+		},
 	}
 	app.Action = func(c *cli.Context) {
 		port := c.String("port")
 		redisHost := c.String("redis-host")
 		redisPort := c.String("redis-port")
 		wmsPort := c.String("wms-port")
+		useCache := c.Bool("use-cache")
 
-		wmsRevProxy := wmsReverseProxy(redisHost, redisPort, wmsPort)
+		wmsRevProxy := wmsReverseProxy(redisHost, redisPort, wmsPort, useCache)
 
 		log.Println("starting wms reverse proxy on port", port)
 		log.Println("using redirect info from redis server on", strings.Join([]string{redisHost, redisPort}, ":"))
