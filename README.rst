@@ -31,6 +31,9 @@ port in your threedi_server settings. For example::
 
 The redis-host value should point to your threedi_server redis server.
 
+Add --use-cache for local development setup (because some wms requests do not have 
+session cookies).
+
 When you running the wms reverse proxy with the proper settings as stated 
 above, your wms results will be served through the reverse proxy.
 
