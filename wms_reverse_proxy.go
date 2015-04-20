@@ -53,7 +53,7 @@ func wmsReverseProxy(redisHost string, redisPort string, wmsPort string, useCach
 		sessionCookie, err := req.Cookie("sessionid")
 		remoteAddr := strings.Split(req.RemoteAddr, ":")[0] // skip the port
 		if err == nil {
-			sessionKey := sessionCookie.Value
+			sessionKey = sessionCookie.Value
 			log.Println("got session key from request:", sessionKey)
 			if useCache == true {
 				// put the session key in a cache map by using remoteAddr as key
