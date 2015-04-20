@@ -6,11 +6,10 @@ that is based on nginx and lua.
 
 For local development, you can use an executable based on this package.
 
-Instructions for local deployment
+instructions for local deployment
 ---------------------------------
 
-Make sure you have the latest version of Go 1.x installed. Then build an
-executable, like this::
+Make sure you have Go 1.x installed. Then build the executable::
 
     $ go build -o wmsrp .
 
