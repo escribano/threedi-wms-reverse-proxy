@@ -59,7 +59,7 @@ func wmsReverseProxy(redisHost string, redisPort string, wmsPort string, useCach
 				log.Println("- INFO - storing session key in cache; remote address:", remoteAddr)
 			}
 		} else if useCache == true {
-			log.Println("- INFO - fetching session key from cache; remote address: ", remoteAddr)
+			log.Println("- INFO - fetching session key from cache; remote address:", remoteAddr)
 			sessionKey = sessionKeyCache[remoteAddr]
 			if sessionKey != "" {
 				log.Println("- INFO - got session key from cache:", sessionKey)
@@ -95,7 +95,7 @@ func wmsReverseProxy(redisHost string, redisPort string, wmsPort string, useCach
 
 		// use the full wms address to redirect this request to
 		wmsAddress := strings.Join([]string{wmsIP, wmsPort}, ":")
-		log.Println("- INFO - got wms address:", wmsAddress)
+		log.Println("- INFO - resolved wms address", wmsAddress)
 		req.URL.Scheme = "http"
 		req.URL.Host = wmsAddress
 	}
