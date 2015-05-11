@@ -46,6 +46,8 @@ func wmsReverseProxy(redisHost string, redisPort string, wmsPort string, useCach
 	pool = newRedisPool(redisAddress, "")
 
 	director := func(req *http.Request) {
+		var startTime = time.Now()
+		log.Println("- INFO - start resolving wms address")
 		// 1) get the session key
 		var sessionKey string
 		sessionCookie, err := req.Cookie("sessionid")
@@ -95,7 +97,8 @@ func wmsReverseProxy(redisHost string, redisPort string, wmsPort string, useCach
 
 		// use the full wms address to redirect this request to
 		wmsAddress := strings.Join([]string{wmsIP, wmsPort}, ":")
-		log.Println("- INFO - resolved wms address", wmsAddress)
+		var endTime = time.Now()
+		log.Println("- INFO - resolved wms address", wmsAddress, "in", endTime.Sub(startTime))
 		req.URL.Scheme = "http"
 		req.URL.Host = wmsAddress
 	}
