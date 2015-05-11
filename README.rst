@@ -67,7 +67,7 @@ Add log rotation to /etc/supervisor/supervisor.conf::
     stderr_logfile_maxbytes = 104857600
     stderr_logfile_backups = 10
 
-Make sure the /3di location in the nginx site config file point to the reverse proxy (proxy pass host and port must match wmsrp host and port)::
+Make sure the /3di location in the nginx site config file points to the reverse proxy (proxy pass host and port must match wmsrp host and port)::
 
     location /3di {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
