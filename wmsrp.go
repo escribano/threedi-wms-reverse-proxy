@@ -10,6 +10,9 @@ import (
 )
 
 func main() {
+	// also use microseconds in log messages
+	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
+
 	app := cli.NewApp()
 	app.Name = "wmsrp"
 	app.Usage = "wms reverse proxy for the 3di scalability architecture"
@@ -52,13 +55,13 @@ func main() {
 
 		wmsRevProxy := wmsReverseProxy(redisHost, redisPort, wmsPort, useCache)
 
-		log.Println("starting wms reverse proxy on port", port)
-		log.Println("using redirect info from redis server on", strings.Join([]string{redisHost, redisPort}, ":"))
-		log.Println("redirecting to wms servers on port", wmsPort)
+		log.Println("- INFO - starting wms reverse proxy on port", port)
+		log.Println("- INFO - using redirect info from redis server on", strings.Join([]string{redisHost, redisPort}, ":"))
+		log.Println("- INFO - redirecting to wms servers on port", wmsPort)
 
 		err := http.ListenAndServe(":"+port, wmsRevProxy)
 		if err != nil {
-			log.Fatal("http.ListenAndServe:", err)
+			log.Fatal("- ERROR - http.ListenAndServe:", err)
 		}
 	}
 	app.Run(os.Args)

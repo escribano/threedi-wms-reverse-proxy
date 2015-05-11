@@ -52,50 +52,50 @@ func wmsReverseProxy(redisHost string, redisPort string, wmsPort string, useCach
 		remoteAddr := strings.Split(req.RemoteAddr, ":")[0] // skip the port
 		if err == nil {
 			sessionKey = sessionCookie.Value
-			log.Println("got session key from request:", sessionKey)
+			log.Println("- INFO - got session key from request:", sessionKey)
 			if useCache == true {
 				// put the session key in a cache map by using remoteAddr as key
 				sessionKeyCache[remoteAddr] = sessionKey
-				log.Println("storing session key in cache; remote address:", remoteAddr)
+				log.Println("- INFO - storing session key in cache; remote address:", remoteAddr)
 			}
 		} else if useCache == true {
 			log.Println("fetching session key from cache; remote address: ", remoteAddr)
 			sessionKey = sessionKeyCache[remoteAddr]
 			if sessionKey != "" {
-				log.Println("got session key from cache:", sessionKey)
+				log.Println("- INFO - got session key from cache:", sessionKey)
 			}
 		}
 		if sessionKey == "" {
-			log.Println("unable to get a session key")
+			log.Println("- ERROR - unable to get a session key")
 			req.URL = nil // results in a 500 response, which is what we want here
 			return
 		}
 
 		// redis connection from pool
 		conn := pool.Get()
-		log.Println("number of active connections in redis pool:", pool.ActiveCount())
+		log.Println("- DEBUG - number of active connections in redis pool:", pool.ActiveCount())
 		defer conn.Close()
 
 		// 2) get the subgrid_id
 		subgridID, err := redis.String(conn.Do("HGET", "session_to_subgrid_id", sessionKey))
 		if err != nil {
-			log.Println("unable to get subgrid id:", err)
+			log.Println("- ERROR - unable to get subgrid id:", err)
 			req.URL = nil
 			return
 		}
-		log.Println("got subgrid id:", subgridID)
+		log.Println("- INFO - got subgrid id:", subgridID)
 
 		// 3) get the wms server ip
 		wmsIP, err := redis.String(conn.Do("HGET", "subgrid_id_to_ip", subgridID))
 		if err != nil {
-			log.Println("unable to get wms ip:", err)
+			log.Println("- ERROR - unable to get wms ip:", err)
 			req.URL = nil
 			return
 		}
 
 		// use the full wms address to redirect this request to
 		wmsAddress := strings.Join([]string{wmsIP, wmsPort}, ":")
-		log.Println("got wms address:", wmsAddress)
+		log.Println("- INFO - got wms address:", wmsAddress)
 		req.URL.Scheme = "http"
 		req.URL.Host = wmsAddress
 	}
