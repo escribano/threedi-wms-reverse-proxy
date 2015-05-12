@@ -40,12 +40,12 @@ instruction for deployment on staging and production
 
 Make sure supervisor is installed::
 
-    $ apt-get install supervisor
+    $ apt-get install supervisor -y
 
 Create directory /usr/local/wmsrevproxy and put the wmsrp binary in it::
 
-    $ mkdir /usr/local/wmsrevproxy
-    $ cp wmsrp /usr/local/wmsrevproxy
+    $ mkdir /usr/local/wmsrevprox
+    $ cp wmsrp /usr/local/wmsrevprox
 
 Create a /etc/supervisor/conf.d/wmsrevprox.conf file with this content (N.B. change --redis-host to p-3di-red-d1.external-nens.local for production)::
 
