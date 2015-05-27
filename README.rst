@@ -81,3 +81,8 @@ Reload nginx and restart supervisor::
 
     $ service nginx reload
     $ service supervisor restart
+
+The wms reverse proxy log file can be found here::
+
+    $ tail -f /var/log/supervisor/wms_reverse_proxy-stdout---supervisor-*.log
+
