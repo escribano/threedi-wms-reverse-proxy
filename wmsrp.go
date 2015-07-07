@@ -41,6 +41,11 @@ func main() {
 			Value: "5000",
 			Usage: "wms server port",
 		},
+		cli.StringFlag{
+			Name:  "flow-wms-port",
+			Value: "6000",
+			Usage: "flow wms server port",
+		},
 		cli.BoolFlag{
 			Name:  "use-cache",
 			Usage: "cache session keys (use for development environments)",
@@ -50,14 +55,15 @@ func main() {
 		port := c.String("port")
 		redisHost := c.String("redis-host")
 		redisPort := c.String("redis-port")
-		wmsPort := c.String("wms-port")
+		subgridWmsPort := c.String("wms-port")
+		flowWmsPort := c.String("flow-wms-port")
 		useCache := c.Bool("use-cache")
 
-		wmsRevProxy := wmsReverseProxy(redisHost, redisPort, wmsPort, useCache)
+		wmsRevProxy := wmsReverseProxy(redisHost, redisPort, subgridWmsPort, flowWmsPort, useCache)
 
 		log.Println("- INFO - starting wms reverse proxy on port", port)
 		log.Println("- INFO - using redirect info from redis server on", strings.Join([]string{redisHost, redisPort}, ":"))
-		log.Println("- INFO - redirecting to wms servers on port", wmsPort)
+		log.Println("- INFO - redirecting subgrid wms requests to port", subgridWmsPort, "and flow wms requests to port", flowWmsPort)
 
 		err := http.ListenAndServe(":"+port, wmsRevProxy)
 		if err != nil {

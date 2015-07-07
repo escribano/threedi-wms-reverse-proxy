@@ -1,11 +1,6 @@
 wms reverse proxy for 3di scalability
 =====================================
 
-On the scalability staging and production machines we have a wms reverse proxy
-that is based on nginx and lua.
-
-For local development, you can use an executable based on this package.
-
 instructions for local deployment
 ---------------------------------
 
@@ -19,7 +14,7 @@ To see usage information and the command line options of the generated executabl
 
 Or to run it, do (values are examples)::
 
-    $ /.wmsrp --port=8321 --redis-host=10.0.3.100 --wms-port=5000
+    $ /.wmsrp --port=8321 --redis-host=10.0.3.100 --wms-port=5000 --flow-wms-port=6000
 
 You can determine the port yourself, but it has to match the wms url
 port in your threedi_server settings. For example::
@@ -50,7 +45,7 @@ Create directory /usr/local/wmsrevproxy and put the wmsrp binary in it::
 Create a /etc/supervisor/conf.d/wmsrevprox.conf file with this content (N.B. change --redis-host to p-3di-red-d1.external-nens.local for production)::
 
     [program:wms_reverse_proxy]
-    command = /usr/local/wmsrevprox/wmsrp -p 6666 --redis-host=s-3di-red-d1.external-nens.local --wms-port=5000
+    command = /usr/local/wmsrevprox/wmsrp -p 6666 --redis-host=s-3di-red-d1.external-nens.local --wms-port=5000 --flow-wms-port=6000
     process_name = wms_reverse_proxy
     directory = /usr/local/wmsrevprox
     priority = 20

@@ -39,7 +39,7 @@ func newRedisPool(server, password string) *redis.Pool {
 	}
 }
 
-func wmsReverseProxy(redisHost string, redisPort string, wmsPort string, useCache bool) *httputil.ReverseProxy {
+func wmsReverseProxy(redisHost string, redisPort string, subgridWmsPort string, flowWmsPort string, useCache bool) *httputil.ReverseProxy {
 	sessionKeyCache := make(map[string]string)
 
 	redisAddress := strings.Join([]string{redisHost, redisPort}, ":")
@@ -49,7 +49,7 @@ func wmsReverseProxy(redisHost string, redisPort string, wmsPort string, useCach
 		var startTime = time.Now()
 		log.Println("- INFO - start resolving wms address")
 		// 1) get the session key
-		var sessionKey string
+		var sessionKey, wmsPort string
 		sessionCookie, err := req.Cookie("sessionid")
 		remoteAddr := strings.Split(req.RemoteAddr, ":")[0] // skip the port
 		if err == nil {
@@ -91,6 +91,28 @@ func wmsReverseProxy(redisHost string, redisPort string, wmsPort string, useCach
 		wmsIP, err := redis.String(conn.Do("HGET", "subgrid_id_to_ip", subgridID))
 		if err != nil {
 			log.Println("- ERROR - unable to get wms ip:", err)
+			req.URL = nil
+			return
+		}
+
+		// 4) get the loaded_model_type
+		loadedModelType, err := redis.String(conn.Do("GET", subgridID+":loaded_model_type"))
+		if err != nil {
+			// assume loaded_model_type is 3di for backwards compatibility
+			log.Println("- WARNING - loaded_model_type not available, fallback to default (3di)")
+			loadedModelType = "3di"
+		}
+		log.Println("- INFO - using loaded model type:", loadedModelType)
+
+		// 5) determine which wms port to use based on the loaded model type
+		switch loadedModelType {
+		case "3di":
+			wmsPort = subgridWmsPort
+		case "3di-urban":
+			wmsPort = flowWmsPort
+		// assume loaded_model_type is 3di for backwards compatibility
+		default:
+			log.Println("- ERROR - unsupported loaded model type:", loadedModelType)
 			req.URL = nil
 			return
 		}
