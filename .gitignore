@@ -1,4 +1,5 @@
 *.swp
+.venv
 
 wmsrp
 run.sh
