@@ -39,17 +39,29 @@ func newRedisPool(server, password string) *redis.Pool {
 	}
 }
 
-func wmsReverseProxy(redisHost string, redisPort string, subgridWmsPort string, flowWmsPort string, useCache bool) *httputil.ReverseProxy {
+func wmsReverseProxy(redisHost string, redisPort string, subgridWmsPort string, flowWmsPort string, useCache bool, singleServer string) *httputil.ReverseProxy {
+	// normally use redis to find subgrid_id and ip belonging to session
+	// if singleServer is defined, subgrid_id = singleServer and redirect to localhost
+	var subgridID string
+    var wmsIP string
+
 	sessionKeyCache := make(map[string]string)
 
 	redisAddress := strings.Join([]string{redisHost, redisPort}, ":")
 	pool = newRedisPool(redisAddress, "")
+
+	if singleServer != "" {
+		subgridID = singleServer
+		wmsIP = "127.0.0.1"
+		log.Println("- INFO - single server mode, subgrid_id:", subgridID)
+	}
 
 	director := func(req *http.Request) {
 		var startTime = time.Now()
 		log.Println("- INFO - start resolving wms address")
 		// 1) get the session key
 		var sessionKey, wmsPort string
+
 		sessionCookie, err := req.Cookie("sessionid")
 		remoteAddr := strings.Split(req.RemoteAddr, ":")[0] // skip the port
 		if err == nil {
@@ -74,25 +86,28 @@ func wmsReverseProxy(redisHost string, redisPort string, subgridWmsPort string, 
 		}
 
 		// redis connection from pool
+		// TODO: how to define conn: *redis.pooledConnection ??
 		conn := pool.Get()
 		log.Println("- DEBUG - number of active connections in redis pool:", pool.ActiveCount())
 		defer conn.Close()
 
 		// 2) get the subgrid_id
-		subgridID, err := redis.String(conn.Do("HGET", "session_to_subgrid_id", sessionKey))
-		if err != nil {
-			log.Println("- ERROR - unable to get subgrid id:", err)
-			req.URL = nil
-			return
-		}
-		log.Println("- INFO - got subgrid id:", subgridID)
+		if singleServer == "" {
+			subgridID, err = redis.String(conn.Do("HGET", "session_to_subgrid_id", sessionKey))
+			if err != nil {
+				log.Println("- ERROR - unable to get subgrid id:", err)
+				req.URL = nil
+				return
+			}
+			log.Println("- INFO - got subgrid id:", subgridID)
 
-		// 3) get the wms server ip
-		wmsIP, err := redis.String(conn.Do("HGET", "subgrid_id_to_ip", subgridID))
-		if err != nil {
-			log.Println("- ERROR - unable to get wms ip:", err)
-			req.URL = nil
-			return
+			// 3) get the wms server ip
+			wmsIP, err = redis.String(conn.Do("HGET", "subgrid_id_to_ip", subgridID))
+			if err != nil {
+				log.Println("- ERROR - unable to get wms ip:", err)
+				req.URL = nil
+				return
+			}
 		}
 
 		// 4) get the loaded_model_type

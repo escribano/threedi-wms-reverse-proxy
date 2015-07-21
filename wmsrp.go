@@ -21,7 +21,7 @@ func main() {
 		cli.Author{Name: "Sander Smits", Email: ""},
 	}
 	app.Flags = []cli.Flag{
-		cli.StringFlag{
+		cli.StringFlag{  // always, required
 			Name:  "port, p",
 			Value: "5050",
 			Usage: "port this reverse proxy serves on",
@@ -46,6 +46,11 @@ func main() {
 			Value: "6000",
 			Usage: "flow wms server port",
 		},
+		cli.StringFlag{
+			Name:  "single-server",
+			Value: "",
+			Usage: "say we want no redis/machine manager stuff; use provided subgrid_id (subgrid:10000) and redirect to localhost",
+		},
 		cli.BoolFlag{
 			Name:  "use-cache",
 			Usage: "cache session keys (use for development environments)",
@@ -58,8 +63,9 @@ func main() {
 		subgridWmsPort := c.String("wms-port")
 		flowWmsPort := c.String("flow-wms-port")
 		useCache := c.Bool("use-cache")
+		singleServer := c.String("single-server")
 
-		wmsRevProxy := wmsReverseProxy(redisHost, redisPort, subgridWmsPort, flowWmsPort, useCache)
+		wmsRevProxy := wmsReverseProxy(redisHost, redisPort, subgridWmsPort, flowWmsPort, useCache, singleServer)
 
 		log.Println("- INFO - starting wms reverse proxy on port", port)
 		log.Println("- INFO - using redirect info from redis server on", strings.Join([]string{redisHost, redisPort}, ":"))
