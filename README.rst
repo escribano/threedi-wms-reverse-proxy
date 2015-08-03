@@ -1,10 +1,23 @@
 wms reverse proxy for 3di scalability
 =====================================
 
+prerequisites
+-------------
+
+Make sure you have Go 1.x installed. 
+
+Set $GOPATH to anywhere your Go user can write, i.e. EXPORT GOPATH=/home/user/git/go
+
+Fetch some dependencies::
+
+    $ go get github.com/codegangsta/cli
+    $ go get github.com/garyburd/redigo/redis
+
+
 instructions for local deployment
 ---------------------------------
 
-Make sure you have Go 1.x installed. Then build the executable::
+Then build the executable::
 
     $ go build -o wmsrp .
 
