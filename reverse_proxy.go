@@ -43,7 +43,7 @@ func wmsReverseProxy(redisHost string, redisPort string, subgridWmsPort string, 
 	// normally use redis to find subgrid_id and ip belonging to session
 	// if singleServer is defined, subgrid_id = singleServer and redirect to localhost
 	var subgridID string
-    var wmsIP string
+	var wmsIP string
 
 	sessionKeyCache := make(map[string]string)
 

@@ -21,7 +21,7 @@ func main() {
 		cli.Author{Name: "Sander Smits", Email: ""},
 	}
 	app.Flags = []cli.Flag{
-		cli.StringFlag{  // always, required
+		cli.StringFlag{ // always, required
 			Name:  "port, p",
 			Value: "5050",
 			Usage: "port this reverse proxy serves on",
