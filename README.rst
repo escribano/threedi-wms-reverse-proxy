@@ -21,6 +21,11 @@ Then build the executable::
 
     $ go build -o wmsrp .
 
+To build the executable for Windows (not sure why you would want to, but 
+anyway)::
+
+    $ env GOOS=windows GOARCH=amd64 go build -o wmsrp .
+
 To see usage information and the command line options of the generated executable, do::
 
     $ ./wmsrp -h
