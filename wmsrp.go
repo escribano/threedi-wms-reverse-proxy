@@ -37,16 +37,6 @@ func main() {
 			Usage: "redis server port",
 		},
 		cli.StringFlag{
-			Name:  "wms-port",
-			Value: "5000",
-			Usage: "wms server port",
-		},
-		cli.StringFlag{
-			Name:  "flow-wms-port",
-			Value: "6000",
-			Usage: "flow wms server port",
-		},
-		cli.StringFlag{
 			Name:  "single-server",
 			Value: "",
 			Usage: "say we want no redis/machine manager stuff; use provided subgrid_id (subgrid:10000) and redirect to localhost",
@@ -60,16 +50,13 @@ func main() {
 		port := c.String("port")
 		redisHost := c.String("redis-host")
 		redisPort := c.String("redis-port")
-		subgridWmsPort := c.String("wms-port")
-		flowWmsPort := c.String("flow-wms-port")
 		useCache := c.Bool("use-cache")
 		singleServer := c.String("single-server")
 
-		wmsRevProxy := wmsReverseProxy(redisHost, redisPort, subgridWmsPort, flowWmsPort, useCache, singleServer)
+		wmsRevProxy := wmsReverseProxy(redisHost, redisPort, useCache, singleServer)
 
 		log.Println("- INFO - starting wms reverse proxy on port", port)
 		log.Println("- INFO - using redirect info from redis server on", strings.Join([]string{redisHost, redisPort}, ":"))
-		log.Println("- INFO - redirecting subgrid wms requests to port", subgridWmsPort, "and flow wms requests to port", flowWmsPort)
 
 		err := http.ListenAndServe(":"+port, wmsRevProxy)
 		if err != nil {
