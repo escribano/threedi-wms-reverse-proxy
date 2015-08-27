@@ -32,7 +32,7 @@ To see usage information and the command line options of the generated executabl
 
 Or to run it, do (values are examples)::
 
-    $ /.wmsrp --port=8321 --redis-host=10.0.3.100 --wms-port=5000 --flow-wms-port=6000
+    $ /.wmsrp --port=8321 --redis-host=10.0.3.100
 
 You can determine the port yourself, but it has to match the wms url
 port in your threedi_server settings. For example::
@@ -63,7 +63,7 @@ Create directory /usr/local/wmsrevproxy and put the wmsrp binary in it::
 Create a /etc/supervisor/conf.d/wmsrevprox.conf file with this content (N.B. change --redis-host to p-3di-red-d1.external-nens.local for production)::
 
     [program:wms_reverse_proxy]
-    command = /usr/local/wmsrevprox/wmsrp -p 6666 --redis-host=s-3di-red-d1.external-nens.local --wms-port=5000 --flow-wms-port=6000
+    command = /usr/local/wmsrevprox/wmsrp -p 6666 --redis-host=s-3di-red-d1.external-nens.local
     process_name = wms_reverse_proxy
     directory = /usr/local/wmsrevprox
     priority = 20
@@ -99,3 +99,15 @@ The wms reverse proxy log file can be found here::
 
     $ tail -f /var/log/supervisor/wms_reverse_proxy-stdout---supervisor-*.log
 
+required redis variables
+------------------------
+
+These redis variables are required::
+
+    # set by the socket server
+    - session_to_subgrid_id
+    - <subgrid_id>:loaded_model_type
+
+    # set by the machine manager
+    - <subgrid_id>:wms_address
+    - <subgrid_id>:flow_address
