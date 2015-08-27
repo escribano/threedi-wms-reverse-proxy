@@ -110,9 +110,9 @@ func wmsReverseProxy(redisHost string, redisPort string, useCache bool, singleSe
 		// 4) determine which address key to use based on the loaded model type
 		switch loadedModelType {
 		case "3di":
-			addressKey = "subgrid_id_to_wms_address"
+			addressKey = "wms_address"
 		case "3di-urban":
-			addressKey = "subgrid_id_to_flow_address"
+			addressKey = "flow_address"
 		default:
 			log.Println("- ERROR - unsupported loaded model type:", loadedModelType)
 			req.URL = nil
@@ -121,7 +121,7 @@ func wmsReverseProxy(redisHost string, redisPort string, useCache bool, singleSe
 
 		// 5) get the data address
 		if singleServer == "" {
-			dataAddress, err = redis.String(conn.Do("HGET", addressKey, subgridID))
+			dataAddress, err = redis.String(conn.Do("GET", subgridID+":"+addressKey))
 			if err != nil {
 				log.Println("- ERROR - unable to get data address:", err)
 				req.URL = nil
