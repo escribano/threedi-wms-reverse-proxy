@@ -99,3 +99,15 @@ The wms reverse proxy log file can be found here::
 
     $ tail -f /var/log/supervisor/wms_reverse_proxy-stdout---supervisor-*.log
 
+required redis variables
+------------------------
+
+These redis variables are required::
+
+    # set by the socket server
+    - session_to_subgrid_id
+    - <subgrid_id>:loaded_model_type
+
+    # set by the machine manager
+    - <subgrid_id>:wms_address
+    - <subgrid_id>:flow_address
