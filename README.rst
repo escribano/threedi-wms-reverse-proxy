@@ -109,5 +109,5 @@ These redis variables are required::
     - <subgrid_id>:loaded_model_type
 
     # set by the machine manager
-    - <subgrid_id>:wms_address
-    - <subgrid_id>:flow_address
+    - subgrid_id_to_wms_address
+    - subgrid_id_to_flow_address
