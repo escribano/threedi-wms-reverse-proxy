@@ -121,7 +121,7 @@ func wmsReverseProxy(redisHost string, redisPort string, useCache bool, singleSe
 
 		// 5) get the data address
 		if singleServer == "" {
-			dataAddress, err = redis.String(conn.Do("GET", subgridID+":"+addressKey))
+			dataAddress, err = redis.String(conn.Do("HGET", "subgrid_id_to_"+addressKey, subgridID))
 			if err != nil {
 				log.Println("- ERROR - unable to get data address:", err)
 				req.URL = nil
