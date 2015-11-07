@@ -1,2 +1,0 @@
-Make version compiling work with -ldflags; see http://stackoverflow.com/questions/28459102/golang-compile-environment-variable-into-binary.
-
