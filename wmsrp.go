@@ -16,7 +16,11 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "wmsrp"
 	app.Usage = "wms reverse proxy for the 3di scalability architecture"
-	app.Version = "0.2.0.dev0"
+	version, err := getVersion()
+	if err != nil {
+		panic(err)
+	}
+	app.Version = version
 	app.Authors = []cli.Author{
 		cli.Author{Name: "Sander Smits", Email: ""},
 	}
