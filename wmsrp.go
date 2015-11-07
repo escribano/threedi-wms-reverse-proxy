@@ -9,6 +9,8 @@ import (
 	"github.com/codegangsta/cli"
 )
 
+var Version = ""
+
 func main() {
 	// also use microseconds in log messages
 	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds)
@@ -16,11 +18,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "wmsrp"
 	app.Usage = "wms reverse proxy for the 3di scalability architecture"
-	version, err := getVersion()
-	if err != nil {
-		panic(err)
-	}
-	app.Version = version
+	app.Version = Version
 	app.Authors = []cli.Author{
 		cli.Author{Name: "Sander Smits", Email: ""},
 	}
