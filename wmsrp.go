@@ -9,7 +9,8 @@ import (
 	"github.com/codegangsta/cli"
 )
 
-var Version = ""
+// placeholder for injecting the real version when compiling by build.sh
+var Version = "dev"
 
 func main() {
 	// also use microseconds in log messages
