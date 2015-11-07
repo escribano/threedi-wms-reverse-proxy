@@ -2,7 +2,7 @@ Changelog of wmsrp
 ==================
 
 
-0.2 (unreleased)
+0.2 (2015-11-07)
 ----------------
 
 - Fetch wms and flow address from the ``subgrid_id_to_wms_address`` and 
