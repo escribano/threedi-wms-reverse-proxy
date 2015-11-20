@@ -5,7 +5,7 @@ Changelog of wmsrp
 0.3 (unreleased)
 ----------------
 
-- Nothing changed yet.
+- Use ``gb`` for dependency management.
 
 
 0.2 (2015-11-07)
